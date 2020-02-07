@@ -1,0 +1,27 @@
+{
+  "name": "exchange_rates_restful",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pjingjai/exchange_rates_restful.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/pjingjai/exchange_rates_restful/issues"
+  },
+  "homepage": "https://github.com/pjingjai/exchange_rates_restful#readme",
+  "dependencies": {
+    "axios": "^0.19.2",
+    "koa": "^2.11.0",
+    "typescript": "^3.7.5"
+  },
+  "devDependencies": {
+    "@types/node": "^13.7.0"
+  }
+}
