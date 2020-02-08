@@ -5,13 +5,14 @@ const axios = require("axios");
 const fs = require('fs-extra');
 const koaBody = require("koa-body");
 const path = require("path");
-const util = require("util");
 const app = new Koa();
 const router = new Router();
+let mainExchangeRatesFile = "exchange_rates_data";
+const textFileDir = path.join(__dirname, "../uploads");
 const fetchExchangeRatesAPIThenWriteFile = async () => {
     try {
         const response = await axios.get("https://api.exchangeratesapi.io/latest?base=USD");
-        await fs.writeFile("exchange_rates_data.txt", JSON.stringify(response.data), "utf8");
+        await fs.writeFile(path.join(textFileDir, "exchange_rates_data"), JSON.stringify(response.data), "utf8");
         console.log("Saved!");
     }
     catch (err) {
@@ -26,8 +27,6 @@ setInterval(() => {
 }, 
 // 1 day: 1000 * 60 * 60 * 24
 86400000);
-let mainExchangeRatesFile = "exchange_rates_data.txt";
-const textFileDir = path.join(__dirname, "../uploads");
 router
     .get("/", async (ctx, next) => {
     try {
@@ -53,20 +52,21 @@ router
     }
     await next();
 })
-    .post("/:filename", koaBody({ multipart: true }), async (ctx, next) => {
+    .post("/", koaBody({ multipart: true }), async (ctx, next) => {
     try {
         if (ctx.request.files.file.type !== "text/plain") {
             ctx.status = 400;
             ctx.body = "file type not allowed";
-            throw new Error('file type not allowed');
+            throw new Error("file type not allowed");
         }
         if (Object.keys(ctx.request.files).length !== 1) {
             ctx.status = 400;
             ctx.body = "can only upload 1 file at a time";
-            throw new Error('can only upload 1 file at a time');
+            throw new Error("can only upload 1 file at a time");
         }
-        const textFileName = ctx.params.filename;
-        await fs.rename(ctx.request.files.photo.path, path.join(textFileDir, textFileName));
+        const oldPath = Object.values(ctx.request.files)[0].path;
+        const textFileName = ctx.request.body.filename || String(Date.now());
+        await fs.rename(oldPath, path.join(textFileDir, textFileName));
         ctx.status = 201;
     }
     catch (err) {
