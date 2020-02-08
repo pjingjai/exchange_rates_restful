@@ -12,6 +12,7 @@ const router = new Router();
 
 const readdir = promisify(fs.readdir);
 
+// Props
 const _MAIN = "exchange_rates_data"
 let currentExchangeRatesFile = _MAIN;
 const fileDir = path.join(__dirname, "../files");
@@ -38,6 +39,7 @@ setInterval(
 )
 
 router
+    // Get current file content
     .get(
         "/",
         async (ctx: any, next: any) => {
@@ -55,11 +57,13 @@ router
         "/:fromCur/:toCur",
         async (ctx: any, next: any) => {
             try {
+                // Params must be string
                 if (typeof (ctx.params.fromCur) !== "string" || typeof (ctx.params.toCur) !== "string") {
                     ctx.status = 400;
                     ctx.body = "invalid params type";
                     throw new Error("invalid params type");
                 }
+                // Params must be of length 3
                 if ((ctx.params.fromCur).length !== 3 || (ctx.params.toCur).length !== 3) {
                     ctx.status = 400;
                     ctx.body = "invalid params length";
@@ -70,6 +74,14 @@ router
 
                 const from: string = (ctx.params.fromCur).toUpperCase();
                 const to: string = (ctx.params.toCur).toUpperCase();
+
+                // If params are invalid currencies
+                if (!Object.keys(exchange.rates).includes(from) || !Object.keys(exchange.rates).includes(to)) {
+                    ctx.status = 400;
+                    ctx.body = "invalid currency param(s)";
+                    throw new Error("invalid currency param(s)");
+                }
+
                 const fromInUsd: number = Number(exchange.rates[from]);
                 const toInUsd: number = Number(exchange.rates[to]);
 
@@ -88,9 +100,11 @@ router
         koaBody({ multipart: true }),
         async (ctx: any, next: any) => {
             try {
+                // File must be of type 'application/octet-stream'
                 if (ctx.request.files.file.type !== "application/octet-stream") {
                     ctx.throw(400, "file type not allowed");
                 }
+                // Must upload only 1 file
                 if (Object.keys(ctx.request.files).length !== 1) {
                     ctx.throw(400, "can only upload 1 file at a time");
                 }
@@ -114,17 +128,20 @@ router
         async (ctx: any, next: any) => {
             try {
                 let filename: string;
+                // Params must be string
                 if (typeof (ctx.params.filename) !== "string") {
                     ctx.status = 400;
                     ctx.body = "invalid params type";
                     throw new Error("invalid params type");
                 }
 
+                // _MAIN means main file
                 if (ctx.params.filename === "_MAIN") {
                     filename = _MAIN
                 } else {
                     filename = ctx.params.filename;
                 }
+                // Set current file if file in dir
                 if ((await readdir(fileDir)).includes(filename)) {
                     currentExchangeRatesFile = filename;
                 } else {
@@ -145,21 +162,27 @@ router
     .delete(
         "/:filename",
         async (ctx: any, next: any) => {
-            if (typeof (ctx.params.filename) !== "string") {
-                ctx.status = 400;
-                ctx.body = "invalid params type";
-                throw new Error("invalid params type");
-            }
-            // Delete
-            if ((await readdir(fileDir)).includes(ctx.params.filename)) {
-                const textFileName = ctx.params.filename;
-                await fsx.remove(path.join(fileDir, textFileName));
-                ctx.status = 200;
-                ctx.body = textFileName + " Deleted!";
-            } else {
-                ctx.status = 400;
-                ctx.body = "file dose not exist";
-                throw new Error("file dose not exist");
+            try {
+                // Params must be string
+                if (typeof (ctx.params.filename) !== "string") {
+                    ctx.status = 400;
+                    ctx.body = "invalid params type";
+                    throw new Error("invalid params type");
+                }
+                // Delete if file in dir
+                if ((await readdir(fileDir)).includes(ctx.params.filename)) {
+                    const textFileName = ctx.params.filename;
+                    await fsx.remove(path.join(fileDir, textFileName));
+                    ctx.status = 200;
+                    ctx.body = textFileName + " Deleted!";
+                } else {
+                    ctx.status = 400;
+                    ctx.body = "file dose not exist";
+                    throw new Error("file dose not exist");
+                }
+            } catch (err) {
+                console.log(err);
+                ctx.status = err.status || 400;
             }
 
             await next();
