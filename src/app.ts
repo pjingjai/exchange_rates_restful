@@ -1,21 +1,18 @@
 const Koa = require("koa");
 const Router = require("koa-router");
-const fs = require("fs");
 const axios = require("axios");
-const fsx = require('fs-extra');
-const util = require('util');
+const fs = require('fs-extra');
+const koaBody = require("koa-body");
+const path = require("path");
+const util = require("util");
 
 const app = new Koa();
 const router = new Router();
 
-const writeFile = util.promisify(fs.writeFile);
-const readFile = util.promisify(fs.readFile);
-   
-
 const fetchExchangeRatesAPIThenWriteFile = async () => {
     try {
         const response = await axios.get("https://api.exchangeratesapi.io/latest?base=USD");
-        await writeFile('exchange_rates_data.txt', JSON.stringify(response.data), "utf8");
+        await fs.writeFile("exchange_rates_data.txt", JSON.stringify(response.data), "utf8");
         console.log("Saved!");
     } catch (err) {
         console.log(err);
@@ -33,14 +30,15 @@ setInterval(
     86400000
 )
 
-let mainExchangeRatesFile = "exchange_rates_data.txt"
+let mainExchangeRatesFile = "exchange_rates_data.txt";
+const textFileDir = path.join(__dirname, "../uploads")
 
 router
     .get(
         "/",
         async (ctx: any, next: any) => {
             try {
-                ctx.body = await readFile(mainExchangeRatesFile, "utf8");
+                ctx.body = await fs.readFile(path.join(textFileDir, mainExchangeRatesFile), "utf8");
             } catch (err) {
                 console.log(err);
             }
@@ -52,7 +50,7 @@ router
         "/:fromCur/:toCur",
         async (ctx: any, next: any) => {
             try {
-                const exchange = JSON.parse(await readFile(mainExchangeRatesFile, "utf8"));
+                const exchange = JSON.parse(await fs.readFile(path.join(textFileDir, mainExchangeRatesFile), "utf8"));
 
                 const from: string = ctx.params.fromCur;
                 const to: string = ctx.params.toCur;
@@ -70,9 +68,23 @@ router
     )
     .post(
         "/:filename",
+        koaBody({ multipart: true }),
         async (ctx: any, next: any) => {
             try {
-                
+                if (ctx.request.files.file.type !== "text/plain") {
+                    ctx.status = 400;
+                    ctx.body = "file type not allowed";
+                    throw new Error('file type not allowed')
+                }
+                if (Object.keys(ctx.request.files).length !== 1) {
+                    ctx.status = 400;
+                    ctx.body = "can only upload 1 file at a time";
+                    throw new Error('can only upload 1 file at a time')
+                }
+
+                const textFileName = ctx.params.filename;
+                await fs.rename(ctx.request.files.photo.path, path.join(textFileDir, textFileName))
+                ctx.status = 201;
             } catch (err) {
                 console.log(err);
             }
@@ -86,7 +98,7 @@ router
         "/:filename",
         async (ctx: any, next: any) => {
             mainExchangeRatesFile = ctx.params.filename;
-            ctx.body = mainExchangeRatesFile;
+            ctx.body = "Main: " + mainExchangeRatesFile;
 
             await next();
         }
@@ -94,7 +106,10 @@ router
     .delete(
         "/:filename",
         async (ctx: any, next: any) => {
-
+            const textFileName = ctx.params.filename;
+            await fs.remove(path.join(textFileDir, textFileName));
+            ctx.status = 200;
+            ctx.body = textFileName + " Deleted!"
 
             await next();
         }
