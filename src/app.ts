@@ -59,15 +59,13 @@ router
             try {
                 // Params must be string
                 if (typeof (ctx.params.fromCur) !== "string" || typeof (ctx.params.toCur) !== "string") {
-                    ctx.status = 400;
                     ctx.body = "invalid params type";
-                    throw new Error("invalid params type");
+                    ctx.throw(400, "invalid params type");
                 }
                 // Params must be of length 3
                 if ((ctx.params.fromCur).length !== 3 || (ctx.params.toCur).length !== 3) {
-                    ctx.status = 400;
                     ctx.body = "invalid params length";
-                    throw new Error("invalid params length");
+                    ctx.throw(400, "invalid params length");
                 }
 
                 const exchange = JSON.parse(await fsx.readFile(path.join(fileDir, currentExchangeRatesFile), "utf8"));
@@ -77,9 +75,8 @@ router
 
                 // If params are invalid currencies
                 if (!Object.keys(exchange.rates).includes(from) || !Object.keys(exchange.rates).includes(to)) {
-                    ctx.status = 400;
                     ctx.body = "invalid currency param(s)";
-                    throw new Error("invalid currency param(s)");
+                    ctx.throw(400, "invalid currency param(s)");
                 }
 
                 const fromInUsd: number = Number(exchange.rates[from]);
@@ -102,10 +99,17 @@ router
             try {
                 // File must be of type 'application/octet-stream'
                 if (ctx.request.files.file.type !== "application/octet-stream") {
+                    ctx.body = "file type not allowed";
                     ctx.throw(400, "file type not allowed");
+                }
+                // If file exist
+                if (ctx.request.body.filename && (await readdir(fileDir)).includes(ctx.request.body.filename)) {
+                    ctx.body = "file already exist";
+                    ctx.throw(400, "file already exist");
                 }
                 // Must upload only 1 file
                 if (Object.keys(ctx.request.files).length !== 1) {
+                    ctx.body = "can only upload 1 file at a time";
                     ctx.throw(400, "can only upload 1 file at a time");
                 }
 
@@ -130,9 +134,8 @@ router
                 let filename: string;
                 // Params must be string
                 if (typeof (ctx.params.filename) !== "string") {
-                    ctx.status = 400;
                     ctx.body = "invalid params type";
-                    throw new Error("invalid params type");
+                    ctx.throw(400, "invalid params type");
                 }
 
                 // _MAIN means main file
@@ -145,9 +148,8 @@ router
                 if ((await readdir(fileDir)).includes(filename)) {
                     currentExchangeRatesFile = filename;
                 } else {
-                    ctx.status = 400;
                     ctx.body = "file dose not exist";
-                    throw new Error("file dose not exist");
+                    ctx.throw(400, "file dose not exist");
                 }
 
                 ctx.body = "Main: " + currentExchangeRatesFile;
@@ -165,9 +167,8 @@ router
             try {
                 // Params must be string
                 if (typeof (ctx.params.filename) !== "string") {
-                    ctx.status = 400;
                     ctx.body = "invalid params type";
-                    throw new Error("invalid params type");
+                    ctx.throw(400, "invalid params type");
                 }
                 // Delete if file in dir
                 if ((await readdir(fileDir)).includes(ctx.params.filename)) {
@@ -176,9 +177,9 @@ router
                     ctx.status = 200;
                     ctx.body = textFileName + " Deleted!";
                 } else {
-                    ctx.status = 400;
                     ctx.body = "file dose not exist";
-                    throw new Error("file dose not exist");
+                    ctx.throw(400, "file dose not exist");
+                    
                 }
             } catch (err) {
                 console.log(err);
