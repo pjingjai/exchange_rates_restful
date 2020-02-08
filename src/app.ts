@@ -49,10 +49,21 @@ router
         "/:fromCur/:toCur",
         async (ctx: any, next: any) => {
             try {
+                if (typeof (ctx.params.fromCur) !== "string" || typeof (ctx.params.toCur) !== "string") {
+                    ctx.status = 400;
+                    ctx.body = "invalid params type";
+                    throw new Error("invalid params type");
+                }
+                if ((ctx.params.fromCur).length !== 3 || (ctx.params.toCur).length !== 3) {
+                    ctx.status = 400;
+                    ctx.body = "invalid params length";
+                    throw new Error("invalid params length");
+                }
+
                 const exchange = JSON.parse(await fs.readFile(path.join(textFileDir, mainExchangeRatesFile), "utf8"));
 
-                const from: string = ctx.params.fromCur;
-                const to: string = ctx.params.toCur;
+                const from: string = (ctx.params.fromCur).toUpperCase();
+                const to: string = (ctx.params.toCur).toUpperCase();
                 const fromInUsd: number = Number(exchange.rates[from]);
                 const toInUsd: number = Number(exchange.rates[to]);
 
