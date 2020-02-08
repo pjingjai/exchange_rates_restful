@@ -70,7 +70,7 @@ router
         koaBody({ multipart: true }),
         async (ctx: any, next: any) => {
             try {
-                if (ctx.request.files.file.type !== "text/plain") {
+                if (ctx.request.files.file.type !== "application/octet-stream") {
                     ctx.status = 400;
                     ctx.body = "file type not allowed";
                     throw new Error("file type not allowed");
