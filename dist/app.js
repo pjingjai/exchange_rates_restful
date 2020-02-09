@@ -64,7 +64,7 @@ router
         }
         const fromInUsd = Number(exchange.rates[from]);
         const toInUsd = Number(exchange.rates[to]);
-        const result = (1 / fromInUsd) * toInUsd;
+        const result = toInUsd / fromInUsd;
         ctx.body = result;
     }
     catch (err) {
@@ -141,6 +141,16 @@ router
         if (typeof (ctx.params.filename) !== "string") {
             ctx.body = "invalid params type";
             ctx.throw(400, "invalid params type");
+        }
+        // If _MAIN, do not delete
+        if (_MAIN === ctx.params.filename) {
+            ctx.body = "cannot delete main file";
+            ctx.throw(400, "cannot delete main file");
+        }
+        // If currentExchangeRatesFile, do not delete
+        if (currentExchangeRatesFile === ctx.params.filename) {
+            ctx.body = "cannot delete due to currently reading from the file requested for deletion";
+            ctx.throw(400, "cannot delete due to currently reading from the file requested for deletion");
         }
         // Delete if file in dir
         if ((await readdir(fileDir)).includes(ctx.params.filename)) {
