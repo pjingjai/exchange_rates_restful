@@ -27,16 +27,13 @@ const fetchExchangeRatesAPIThenWriteFile = async () => {
 // Fetch API data
 fetchExchangeRatesAPIThenWriteFile();
 // Daily
-setInterval(() => {
-    fetchExchangeRatesAPIThenWriteFile();
-}, 
+setInterval(fetchExchangeRatesAPIThenWriteFile, 
 // 1 day: 1000 * 60 * 60 * 24
 86400000);
 router
     // Get current file content
     .get("/", async (ctx, next) => {
     try {
-        console.log(currentExchangeRatesFile);
         ctx.body = await fsx.readFile(path.join(fileDir, currentExchangeRatesFile), "utf8");
     }
     catch (err) {
@@ -44,6 +41,7 @@ router
     }
     await next();
 })
+    // Get rate: 1 fromCur == ? toCur
     .get("/:fromCur/:toCur", async (ctx, next) => {
     try {
         // Params must be string
@@ -75,6 +73,7 @@ router
     }
     await next();
 })
+    // Upload file
     .post("/", koaBody({ multipart: true }), async (ctx, next) => {
     try {
         // File must be of type 'application/octet-stream'
@@ -135,6 +134,7 @@ router
     }
     await next();
 })
+    // Delete file
     .delete("/:filename", async (ctx, next) => {
     try {
         // Params must be string

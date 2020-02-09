@@ -13,7 +13,7 @@ const router = new Router();
 const readdir = promisify(fs.readdir);
 
 // Props
-const _MAIN = "exchange_rates_data"
+const _MAIN = "exchange_rates_data";
 let currentExchangeRatesFile = _MAIN;
 const fileDir = path.join(__dirname, "../files");
 
@@ -31,9 +31,8 @@ const fetchExchangeRatesAPIThenWriteFile = async () => {
 fetchExchangeRatesAPIThenWriteFile();
 // Daily
 setInterval(
-    () => {
-        fetchExchangeRatesAPIThenWriteFile();
-    },
+        fetchExchangeRatesAPIThenWriteFile
+    ,
     // 1 day: 1000 * 60 * 60 * 24
     86400000
 )
@@ -44,7 +43,6 @@ router
         "/",
         async (ctx: any, next: any) => {
             try {
-                console.log(currentExchangeRatesFile)
                 ctx.body = await fsx.readFile(path.join(fileDir, currentExchangeRatesFile), "utf8");
             } catch (err) {
                 console.log(err);
@@ -53,6 +51,7 @@ router
             await next();
         }
     )
+    // Get rate: 1 fromCur == ? toCur
     .get(
         "/:fromCur/:toCur",
         async (ctx: any, next: any) => {
@@ -82,7 +81,7 @@ router
                 const fromInUsd: number = Number(exchange.rates[from]);
                 const toInUsd: number = Number(exchange.rates[to]);
 
-                const result: number = (1 / fromInUsd) * toInUsd;
+                const result: number = toInUsd / fromInUsd;
                 ctx.body = result;
             } catch (err) {
                 console.log(err);
@@ -92,6 +91,7 @@ router
             await next();
         }
     )
+    // Upload file
     .post(
         "/",
         koaBody({ multipart: true }),
@@ -161,6 +161,7 @@ router
             await next();
         }
     )
+    // Delete file
     .delete(
         "/:filename",
         async (ctx: any, next: any) => {
@@ -169,6 +170,16 @@ router
                 if (typeof (ctx.params.filename) !== "string") {
                     ctx.body = "invalid params type";
                     ctx.throw(400, "invalid params type");
+                }
+                // If _MAIN, do not delete
+                if (_MAIN === ctx.params.filename) {
+                    ctx.body = "cannot delete main file";
+                    ctx.throw(400, "cannot delete main file");
+                }
+                // If currentExchangeRatesFile, do not delete
+                if (currentExchangeRatesFile === ctx.params.filename) {
+                    ctx.body = "cannot delete due to currently reading from the file requested for deletion";
+                    ctx.throw(400, "cannot delete due to currently reading from the file requested for deletion");
                 }
                 // Delete if file in dir
                 if ((await readdir(fileDir)).includes(ctx.params.filename)) {
