@@ -12,13 +12,6 @@ const router = new Router();
 
 const readdir = promisify(fs.readdir);
 
-interface KoaRequest extends Koa.Request {
-    files: any
-    body: any
-}
-interface CTX extends Koa.Context {
-    request: KoaRequest
-}
 
 // Props
 const _MAIN = "exchange_rates_data";
@@ -49,7 +42,7 @@ router
     // Get current file content
     .get(
         "/",
-        async (ctx: CTX, next: () => Promise < any >) => {
+        async (ctx: any, next: () => Promise < any >) => {
             try {
                 ctx.body = await fsx.readFile(path.join(fileDir, currentExchangeRatesFile), "utf8");
             } catch (err) {
@@ -62,7 +55,7 @@ router
     // Get rate: 1 fromCur == ? toCur
     .get(
         "/:fromCur/:toCur",
-        async (ctx: CTX, next: () => Promise < any >) => {
+        async (ctx: any, next: () => Promise < any >) => {
             try {
                 // Params must be string
                 if (typeof (ctx.params.fromCur) !== "string" || typeof (ctx.params.toCur) !== "string") {
@@ -103,7 +96,7 @@ router
     .post(
         "/",
         koaBody({ multipart: true }),
-        async (ctx: CTX, next: () => Promise < any >) => {
+        async (ctx: any, next: () => Promise < any >) => {
             try {
                 // File must be of type 'application/octet-stream'
                 if (ctx.request.files.file.type !== "application/octet-stream") {
@@ -138,7 +131,7 @@ router
     // Choose file to read from
     .put(
         "/:filename",
-        async (ctx: CTX, next: () => Promise < any >) => {
+        async (ctx: any, next: () => Promise < any >) => {
             try {
                 let filename: string;
                 // Params must be string
@@ -173,7 +166,7 @@ router
     // Delete file
     .delete(
         "/:filename",
-        async (ctx: CTX, next: () => Promise < any >) => {
+        async (ctx: any, next: () => Promise < any >) => {
             try {
                 // Params must be string
                 if (typeof (ctx.params.filename) !== "string") {

@@ -36,8 +36,6 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-// const Koa = require("koa");
-// const Router = require("koa-router");
 var Koa = require("koa");
 var Router = require("koa-router");
 var axios = require("axios");
