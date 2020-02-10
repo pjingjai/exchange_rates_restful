@@ -1,5 +1,5 @@
-const Koa = require("koa");
-const Router = require("koa-router");
+import * as Koa from "koa";
+import * as Router from "koa-router";
 const axios = require("axios");
 const fs = require("fs");
 const fsx = require("fs-extra");
@@ -11,6 +11,14 @@ const app = new Koa();
 const router = new Router();
 
 const readdir = promisify(fs.readdir);
+
+interface KoaRequest extends Koa.Request {
+    files: any
+    body: any
+}
+interface CTX extends Koa.Context {
+    request: KoaRequest
+}
 
 // Props
 const _MAIN = "exchange_rates_data";
@@ -41,7 +49,7 @@ router
     // Get current file content
     .get(
         "/",
-        async (ctx: any, next: any) => {
+        async (ctx: CTX, next: () => Promise < any >) => {
             try {
                 ctx.body = await fsx.readFile(path.join(fileDir, currentExchangeRatesFile), "utf8");
             } catch (err) {
@@ -54,7 +62,7 @@ router
     // Get rate: 1 fromCur == ? toCur
     .get(
         "/:fromCur/:toCur",
-        async (ctx: any, next: any) => {
+        async (ctx: CTX, next: () => Promise < any >) => {
             try {
                 // Params must be string
                 if (typeof (ctx.params.fromCur) !== "string" || typeof (ctx.params.toCur) !== "string") {
@@ -95,7 +103,7 @@ router
     .post(
         "/",
         koaBody({ multipart: true }),
-        async (ctx: any, next: any) => {
+        async (ctx: CTX, next: () => Promise < any >) => {
             try {
                 // File must be of type 'application/octet-stream'
                 if (ctx.request.files.file.type !== "application/octet-stream") {
@@ -113,7 +121,8 @@ router
                     ctx.throw(400, "can only upload 1 file at a time");
                 }
 
-                const oldPath = Object.values(ctx.request.files)[0].path;
+                const files: any = Object.values(ctx.request.files)[0];
+                const oldPath = files.path;
                 const textFileName = ctx.request.body.filename || String(Date.now());
                 await fsx.rename(oldPath, path.join(fileDir, textFileName));
                 ctx.status = 201;
@@ -129,7 +138,7 @@ router
     // Choose file to read from
     .put(
         "/:filename",
-        async (ctx: any, next: any) => {
+        async (ctx: CTX, next: () => Promise < any >) => {
             try {
                 let filename: string;
                 // Params must be string
@@ -164,7 +173,7 @@ router
     // Delete file
     .delete(
         "/:filename",
-        async (ctx: any, next: any) => {
+        async (ctx: CTX, next: () => Promise < any >) => {
             try {
                 // Params must be string
                 if (typeof (ctx.params.filename) !== "string") {
