@@ -4,11 +4,14 @@ const axios = require("axios");
 const fs = require("fs");
 const fsx = require("fs-extra");
 const koaBody = require("koa-body");
+const logger = require("koa-logger");
 const path = require("path");
 const { promisify } = require("util");
 
 const app = new Koa();
 const router = new Router();
+
+app.use(logger());
 
 const readdir = promisify(fs.readdir);
 
@@ -208,3 +211,5 @@ app.use(router.routes());
 app.use(router.allowedMethods());
 
 app.listen(3000, () => console.log("running on port 3000"));
+
+export default app;
