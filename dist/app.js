@@ -47,7 +47,7 @@ var promisify = require("util").promisify;
 var app = new Koa();
 var router = new Router();
 var readdir = promisify(fs.readdir);
-// Props
+// global
 var _MAIN = "exchange_rates_data";
 var currentExchangeRatesFile = _MAIN;
 var fileDir = path.join(__dirname, "../files");
@@ -70,6 +70,22 @@ var fetchExchangeRatesAPIThenWriteFile = function () { return __awaiter(void 0, 
                 console.log(err_1);
                 return [3 /*break*/, 4];
             case 4: return [2 /*return*/];
+        }
+    });
+}); };
+var getRate = function (from, to) { return __awaiter(void 0, void 0, void 0, function () {
+    var exchange, _a, _b, fromInUsd, toInUsd, result;
+    return __generator(this, function (_c) {
+        switch (_c.label) {
+            case 0:
+                _b = (_a = JSON).parse;
+                return [4 /*yield*/, fsx.readFile(path.join(fileDir, currentExchangeRatesFile), "utf8")];
+            case 1:
+                exchange = _b.apply(_a, [_c.sent()]);
+                fromInUsd = Number(exchange.rates[from]);
+                toInUsd = Number(exchange.rates[to]);
+                result = toInUsd / fromInUsd;
+                return [2 /*return*/, result];
         }
     });
 }); };
@@ -105,11 +121,11 @@ router
 }); })
     // Get rate: 1 fromCur == ? toCur
     .get("/:fromCur/:toCur", function (ctx, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var exchange, _a, _b, from, to, fromInUsd, toInUsd, result, err_3;
-    return __generator(this, function (_c) {
-        switch (_c.label) {
+    var exchange, _a, _b, from, to, _c, err_3;
+    return __generator(this, function (_d) {
+        switch (_d.label) {
             case 0:
-                _c.trys.push([0, 2, , 3]);
+                _d.trys.push([0, 3, , 4]);
                 // Params must be string
                 if (typeof (ctx.params.fromCur) !== "string" || typeof (ctx.params.toCur) !== "string") {
                     ctx.body = "invalid params type";
@@ -123,7 +139,7 @@ router
                 _b = (_a = JSON).parse;
                 return [4 /*yield*/, fsx.readFile(path.join(fileDir, currentExchangeRatesFile), "utf8")];
             case 1:
-                exchange = _b.apply(_a, [_c.sent()]);
+                exchange = _b.apply(_a, [_d.sent()]);
                 from = (ctx.params.fromCur).toUpperCase();
                 to = (ctx.params.toCur).toUpperCase();
                 // If params are invalid currencies
@@ -131,26 +147,75 @@ router
                     ctx.body = "invalid currency param(s)";
                     ctx.throw(400, "invalid currency param(s)");
                 }
-                fromInUsd = Number(exchange.rates[from]);
-                toInUsd = Number(exchange.rates[to]);
-                result = toInUsd / fromInUsd;
-                ctx.body = result;
-                return [3 /*break*/, 3];
+                _c = ctx;
+                return [4 /*yield*/, getRate(from, to)];
             case 2:
-                err_3 = _c.sent();
+                _c.body = _d.sent();
+                return [3 /*break*/, 4];
+            case 3:
+                err_3 = _d.sent();
                 console.log(err_3);
                 ctx.status = err_3.status || 400;
-                return [3 /*break*/, 3];
-            case 3: return [4 /*yield*/, next()];
-            case 4:
-                _c.sent();
+                return [3 /*break*/, 4];
+            case 4: return [4 /*yield*/, next()];
+            case 5:
+                _d.sent();
+                return [2 /*return*/];
+        }
+    });
+}); })
+    .get("/:amount/:fromCur/:toCur", function (ctx, next) { return __awaiter(void 0, void 0, void 0, function () {
+    var exchange, _a, _b, from, to, _c, err_4;
+    return __generator(this, function (_d) {
+        switch (_d.label) {
+            case 0:
+                _d.trys.push([0, 3, , 4]);
+                // If amount is not number
+                if (isNaN(Number(ctx.params.amount))) {
+                    ctx.body = "invalid amount param";
+                    ctx.throw(400, "invalid amount param");
+                }
+                // Params must be string
+                if (typeof (ctx.params.fromCur) !== "string" || typeof (ctx.params.toCur) !== "string") {
+                    ctx.body = "invalid params type";
+                    ctx.throw(400, "invalid params type");
+                }
+                // Params must be of length 3
+                if ((ctx.params.fromCur).length !== 3 || (ctx.params.toCur).length !== 3) {
+                    ctx.body = "invalid params length";
+                    ctx.throw(400, "invalid params length");
+                }
+                _b = (_a = JSON).parse;
+                return [4 /*yield*/, fsx.readFile(path.join(fileDir, currentExchangeRatesFile), "utf8")];
+            case 1:
+                exchange = _b.apply(_a, [_d.sent()]);
+                from = (ctx.params.fromCur).toUpperCase();
+                to = (ctx.params.toCur).toUpperCase();
+                // If params are invalid currencies
+                if (!Object.keys(exchange.rates).includes(from) || !Object.keys(exchange.rates).includes(to)) {
+                    ctx.body = "invalid currency param(s)";
+                    ctx.throw(400, "invalid currency param(s)");
+                }
+                _c = ctx;
+                return [4 /*yield*/, getRate(from, to)];
+            case 2:
+                _c.body = (_d.sent()) * Number(ctx.params.amount);
+                return [3 /*break*/, 4];
+            case 3:
+                err_4 = _d.sent();
+                console.log(err_4);
+                ctx.status = err_4.status || 400;
+                return [3 /*break*/, 4];
+            case 4: return [4 /*yield*/, next()];
+            case 5:
+                _d.sent();
                 return [2 /*return*/];
         }
     });
 }); })
     // Upload file
     .post("/", koaBody({ multipart: true }), function (ctx, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var _a, files, oldPath, toBeValidatedFile, _b, _c, textFileName, err_4;
+    var _a, files, oldPath, toBeValidatedFile, _b, _c, textFileName, err_5;
     return __generator(this, function (_d) {
         switch (_d.label) {
             case 0:
@@ -206,9 +271,9 @@ router
                 _d.label = 8;
             case 8: return [3 /*break*/, 10];
             case 9:
-                err_4 = _d.sent();
-                console.log(err_4);
-                ctx.status = err_4.status || 400;
+                err_5 = _d.sent();
+                console.log(err_5);
+                ctx.status = err_5.status || 400;
                 return [3 /*break*/, 10];
             case 10: return [4 /*yield*/, next()];
             case 11:
@@ -219,7 +284,7 @@ router
 }); })
     // Choose file to read from
     .put("/:filename", function (ctx, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var filename, err_5;
+    var filename, err_6;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -250,9 +315,9 @@ router
                 ctx.body = "Main: " + currentExchangeRatesFile;
                 return [3 /*break*/, 3];
             case 2:
-                err_5 = _a.sent();
-                console.log(err_5);
-                ctx.status = err_5.status || 400;
+                err_6 = _a.sent();
+                console.log(err_6);
+                ctx.status = err_6.status || 400;
                 return [3 /*break*/, 3];
             case 3: return [4 /*yield*/, next()];
             case 4:
@@ -263,7 +328,7 @@ router
 }); })
     // Delete file
     .delete("/:filename", function (ctx, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var textFileName, err_6;
+    var textFileName, err_7;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -299,9 +364,9 @@ router
                 _a.label = 4;
             case 4: return [3 /*break*/, 6];
             case 5:
-                err_6 = _a.sent();
-                console.log(err_6);
-                ctx.status = err_6.status || 400;
+                err_7 = _a.sent();
+                console.log(err_7);
+                ctx.status = err_7.status || 400;
                 return [3 /*break*/, 6];
             case 6: return [4 /*yield*/, next()];
             case 7:

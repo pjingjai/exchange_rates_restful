@@ -14,7 +14,7 @@ const router = new Router();
 const readdir = promisify(fs.readdir);
 
 
-// Props
+// global
 const _MAIN = "exchange_rates_data";
 let currentExchangeRatesFile = _MAIN;
 const fileDir = path.join(__dirname, "../files");
@@ -28,6 +28,13 @@ const fetchExchangeRatesAPIThenWriteFile = async () => {
         console.log(err);
     }
 };
+const getRate = async (from: string, to: string) => {
+    const exchange = JSON.parse(await fsx.readFile(path.join(fileDir, currentExchangeRatesFile), "utf8"));
+    const fromInUsd: number = Number(exchange.rates[from]);
+    const toInUsd: number = Number(exchange.rates[to]);
+    const result: number = toInUsd / fromInUsd;
+    return result;
+}
 
 // Fetch API data
 fetchExchangeRatesAPIThenWriteFile();
@@ -80,11 +87,47 @@ router
                     ctx.throw(400, "invalid currency param(s)");
                 }
 
-                const fromInUsd: number = Number(exchange.rates[from]);
-                const toInUsd: number = Number(exchange.rates[to]);
+                ctx.body = await getRate(from, to);
+            } catch (err) {
+                console.log(err);
+                ctx.status = err.status || 400;
+            }
 
-                const result: number = toInUsd / fromInUsd;
-                ctx.body = result;
+            await next();
+        }
+    )
+    .get(
+        "/:amount/:fromCur/:toCur",
+        async (ctx: any, next: () => Promise<any>) => {
+            try {
+                // If amount is not number
+                if (isNaN(Number(ctx.params.amount))) {
+                    ctx.body = "invalid amount param";
+                    ctx.throw(400, "invalid amount param");
+                }
+                // Params must be string
+                if (typeof (ctx.params.fromCur) !== "string" || typeof (ctx.params.toCur) !== "string") {
+                    ctx.body = "invalid params type";
+                    ctx.throw(400, "invalid params type");
+                }
+                // Params must be of length 3
+                if ((ctx.params.fromCur).length !== 3 || (ctx.params.toCur).length !== 3) {
+                    ctx.body = "invalid params length";
+                    ctx.throw(400, "invalid params length");
+                }
+
+                const exchange = JSON.parse(await fsx.readFile(path.join(fileDir, currentExchangeRatesFile), "utf8"));
+
+                const from: string = (ctx.params.fromCur).toUpperCase();
+                const to: string = (ctx.params.toCur).toUpperCase();
+
+                // If params are invalid currencies
+                if (!Object.keys(exchange.rates).includes(from) || !Object.keys(exchange.rates).includes(to)) {
+                    ctx.body = "invalid currency param(s)";
+                    ctx.throw(400, "invalid currency param(s)");
+                }
+
+                ctx.body = await getRate(from, to) * Number(ctx.params.amount);
             } catch (err) {
                 console.log(err);
                 ctx.status = err.status || 400;
