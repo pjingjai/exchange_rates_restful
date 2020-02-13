@@ -4,14 +4,12 @@ const axios = require("axios");
 const fs = require("fs");
 const fsx = require("fs-extra");
 const koaBody = require("koa-body");
-const logger = require("koa-logger");
+import FileInterface from "./File.interface";
 const path = require("path");
 const { promisify } = require("util");
 
 const app = new Koa();
 const router = new Router();
-
-app.use(logger());
 
 const readdir = promisify(fs.readdir);
 
@@ -35,7 +33,7 @@ const fetchExchangeRatesAPIThenWriteFile = async () => {
 fetchExchangeRatesAPIThenWriteFile();
 // Daily
 setInterval(
-        fetchExchangeRatesAPIThenWriteFile
+    fetchExchangeRatesAPIThenWriteFile
     ,
     // 1 day: 1000 * 60 * 60 * 24
     86400000
@@ -45,7 +43,7 @@ router
     // Get current file content
     .get(
         "/",
-        async (ctx: any, next: () => Promise < any >) => {
+        async (ctx: any, next: () => Promise<any>) => {
             try {
                 ctx.body = await fsx.readFile(path.join(fileDir, currentExchangeRatesFile), "utf8");
             } catch (err) {
@@ -58,7 +56,7 @@ router
     // Get rate: 1 fromCur == ? toCur
     .get(
         "/:fromCur/:toCur",
-        async (ctx: any, next: () => Promise < any >) => {
+        async (ctx: any, next: () => Promise<any>) => {
             try {
                 // Params must be string
                 if (typeof (ctx.params.fromCur) !== "string" || typeof (ctx.params.toCur) !== "string") {
@@ -99,7 +97,7 @@ router
     .post(
         "/",
         koaBody({ multipart: true }),
-        async (ctx: any, next: () => Promise < any >) => {
+        async (ctx: any, next: () => Promise<any>) => {
             try {
                 // File must be of type 'application/octet-stream'
                 if (ctx.request.files.file.type !== "application/octet-stream") {
@@ -108,8 +106,8 @@ router
                 }
                 // If file exist
                 if (ctx.request.body.filename && (await readdir(fileDir)).includes(ctx.request.body.filename)) {
-                    ctx.body = "file already exist";
-                    ctx.throw(400, "file already exist");
+                    ctx.body = "file already exists";
+                    ctx.throw(400, "file already exists");
                 }
                 // Must upload only 1 file
                 if (Object.keys(ctx.request.files).length !== 1) {
@@ -119,9 +117,29 @@ router
 
                 const files: any = Object.values(ctx.request.files)[0];
                 const oldPath = files.path;
-                const textFileName = ctx.request.body.filename || String(Date.now());
-                await fsx.rename(oldPath, path.join(fileDir, textFileName));
-                ctx.status = 201;
+
+                const toBeValidatedFile: FileInterface = JSON.parse(await fsx.readFile(oldPath, "utf8"));
+                if ((Object.keys(toBeValidatedFile.rates)).length < 2) {
+                    ctx.body = "file must contain at least 2 currencies";
+                    ctx.throw(400, "file must contain at least 2 currencies");
+                } else if (
+                    ((Object.keys(toBeValidatedFile.rates)).filter(
+                        currency => currency.length !== 3 || currency !== currency.toUpperCase()
+                    )).length !== 0) {
+                    ctx.body = "currency name must have 3 characters and not lower case";
+                    ctx.throw(400, "currency name must have 3 characters and not lower case");
+                } else if (
+                    ((Object.values(toBeValidatedFile.rates)).filter(
+                        rate => typeof rate !== "number"
+                    )).length !== 0) {
+                    ctx.body = "curency rate must be number";
+                    ctx.throw(400, "curency rate must be number");
+                } else {
+                    // move file to /files
+                    const textFileName = ctx.request.body.filename || String(Date.now());
+                    await fsx.rename(oldPath, path.join(fileDir, textFileName));
+                    ctx.status = 201;
+                }
             } catch (err) {
                 console.log(err);
                 ctx.status = err.status || 400;
@@ -134,7 +152,7 @@ router
     // Choose file to read from
     .put(
         "/:filename",
-        async (ctx: any, next: () => Promise < any >) => {
+        async (ctx: any, next: () => Promise<any>) => {
             try {
                 let filename: string;
                 // Params must be string
@@ -169,7 +187,7 @@ router
     // Delete file
     .delete(
         "/:filename",
-        async (ctx: any, next: () => Promise < any >) => {
+        async (ctx: any, next: () => Promise<any>) => {
             try {
                 // Params must be string
                 if (typeof (ctx.params.filename) !== "string") {
@@ -195,7 +213,7 @@ router
                 } else {
                     ctx.body = "file dose not exist";
                     ctx.throw(400, "file dose not exist");
-                    
+
                 }
             } catch (err) {
                 console.log(err);

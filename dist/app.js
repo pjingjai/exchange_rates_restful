@@ -150,11 +150,11 @@ router
 }); })
     // Upload file
     .post("/", koaBody({ multipart: true }), function (ctx, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var _a, files, oldPath, textFileName, err_4;
-    return __generator(this, function (_b) {
-        switch (_b.label) {
+    var _a, files, oldPath, toBeValidatedFile, _b, _c, textFileName, err_4;
+    return __generator(this, function (_d) {
+        switch (_d.label) {
             case 0:
-                _b.trys.push([0, 4, , 5]);
+                _d.trys.push([0, 9, , 10]);
                 // File must be of type 'application/octet-stream'
                 if (ctx.request.files.file.type !== "application/octet-stream") {
                     ctx.body = "file type not allowed";
@@ -164,13 +164,13 @@ router
                 if (!_a) return [3 /*break*/, 2];
                 return [4 /*yield*/, readdir(fileDir)];
             case 1:
-                _a = (_b.sent()).includes(ctx.request.body.filename);
-                _b.label = 2;
+                _a = (_d.sent()).includes(ctx.request.body.filename);
+                _d.label = 2;
             case 2:
                 // If file exist
                 if (_a) {
-                    ctx.body = "file already exist";
-                    ctx.throw(400, "file already exist");
+                    ctx.body = "file already exists";
+                    ctx.throw(400, "file already exists");
                 }
                 // Must upload only 1 file
                 if (Object.keys(ctx.request.files).length !== 1) {
@@ -179,20 +179,40 @@ router
                 }
                 files = Object.values(ctx.request.files)[0];
                 oldPath = files.path;
+                _c = (_b = JSON).parse;
+                return [4 /*yield*/, fsx.readFile(oldPath, "utf8")];
+            case 3:
+                toBeValidatedFile = _c.apply(_b, [_d.sent()]);
+                if (!((Object.keys(toBeValidatedFile.rates)).length < 2)) return [3 /*break*/, 4];
+                ctx.body = "file must contain at least 2 currencies";
+                ctx.throw(400, "file must contain at least 2 currencies");
+                return [3 /*break*/, 8];
+            case 4:
+                if (!(((Object.keys(toBeValidatedFile.rates)).filter(function (currency) { return currency.length !== 3 || currency !== currency.toUpperCase(); })).length !== 0)) return [3 /*break*/, 5];
+                ctx.body = "currency name must have 3 characters and not lower case";
+                ctx.throw(400, "currency name must have 3 characters and not lower case");
+                return [3 /*break*/, 8];
+            case 5:
+                if (!(((Object.values(toBeValidatedFile.rates)).filter(function (rate) { return typeof rate !== "number"; })).length !== 0)) return [3 /*break*/, 6];
+                ctx.body = "curency rate must be number";
+                ctx.throw(400, "curency rate must be number");
+                return [3 /*break*/, 8];
+            case 6:
                 textFileName = ctx.request.body.filename || String(Date.now());
                 return [4 /*yield*/, fsx.rename(oldPath, path.join(fileDir, textFileName))];
-            case 3:
-                _b.sent();
+            case 7:
+                _d.sent();
                 ctx.status = 201;
-                return [3 /*break*/, 5];
-            case 4:
-                err_4 = _b.sent();
+                _d.label = 8;
+            case 8: return [3 /*break*/, 10];
+            case 9:
+                err_4 = _d.sent();
                 console.log(err_4);
                 ctx.status = err_4.status || 400;
-                return [3 /*break*/, 5];
-            case 5: return [4 /*yield*/, next()];
-            case 6:
-                _b.sent();
+                return [3 /*break*/, 10];
+            case 10: return [4 /*yield*/, next()];
+            case 11:
+                _d.sent();
                 return [2 /*return*/];
         }
     });
@@ -293,3 +313,4 @@ router
 app.use(router.routes());
 app.use(router.allowedMethods());
 app.listen(3000, function () { return console.log("running on port 3000"); });
+exports.default = app;
