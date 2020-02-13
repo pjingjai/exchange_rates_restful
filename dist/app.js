@@ -89,6 +89,58 @@ var getRate = function (from, to) { return __awaiter(void 0, void 0, void 0, fun
         }
     });
 }); };
+// middlewares
+var getRateMiddleware = function (ctx, next) { return __awaiter(void 0, void 0, void 0, function () {
+    var exchange, _a, _b, from, to, _c, err_2;
+    return __generator(this, function (_d) {
+        switch (_d.label) {
+            case 0:
+                _d.trys.push([0, 3, , 4]);
+                if (ctx.params.amount) {
+                    // If amount is not number
+                    if (isNaN(Number(ctx.params.amount))) {
+                        ctx.body = "invalid amount param";
+                        ctx.throw(400, "invalid amount param");
+                    }
+                }
+                // Params must be string
+                if (typeof (ctx.params.fromCur) !== "string" || typeof (ctx.params.toCur) !== "string") {
+                    ctx.body = "invalid params type";
+                    ctx.throw(400, "invalid params type");
+                }
+                // Params must be of length 3
+                if ((ctx.params.fromCur).length !== 3 || (ctx.params.toCur).length !== 3) {
+                    ctx.body = "invalid params length";
+                    ctx.throw(400, "invalid params length");
+                }
+                _b = (_a = JSON).parse;
+                return [4 /*yield*/, fsx.readFile(path.join(fileDir, currentExchangeRatesFile), "utf8")];
+            case 1:
+                exchange = _b.apply(_a, [_d.sent()]);
+                from = (ctx.params.fromCur).toUpperCase();
+                to = (ctx.params.toCur).toUpperCase();
+                // If params are invalid currencies
+                if (!Object.keys(exchange.rates).includes(from) || !Object.keys(exchange.rates).includes(to)) {
+                    ctx.body = "invalid currency param(s)";
+                    ctx.throw(400, "invalid currency param(s)");
+                }
+                _c = ctx;
+                return [4 /*yield*/, getRate(from, to)];
+            case 2:
+                _c.body = (_d.sent()) * (ctx.params.amount ? Number(ctx.params.amount) : 1);
+                return [3 /*break*/, 4];
+            case 3:
+                err_2 = _d.sent();
+                console.log(err_2);
+                ctx.status = err_2.status || 400;
+                return [3 /*break*/, 4];
+            case 4: return [4 /*yield*/, next()];
+            case 5:
+                _d.sent();
+                return [2 /*return*/];
+        }
+    });
+}); };
 // Fetch API data
 fetchExchangeRatesAPIThenWriteFile();
 // Daily
@@ -98,7 +150,7 @@ setInterval(fetchExchangeRatesAPIThenWriteFile,
 router
     // Get current file content
     .get("/", function (ctx, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var _a, err_2;
+    var _a, err_3;
     return __generator(this, function (_b) {
         switch (_b.label) {
             case 0:
@@ -109,8 +161,8 @@ router
                 _a.body = _b.sent();
                 return [3 /*break*/, 3];
             case 2:
-                err_2 = _b.sent();
-                console.log(err_2);
+                err_3 = _b.sent();
+                console.log(err_3);
                 return [3 /*break*/, 3];
             case 3: return [4 /*yield*/, next()];
             case 4:
@@ -120,102 +172,11 @@ router
     });
 }); })
     // Get rate: 1 fromCur == ? toCur
-    .get("/:fromCur/:toCur", function (ctx, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var exchange, _a, _b, from, to, _c, err_3;
-    return __generator(this, function (_d) {
-        switch (_d.label) {
-            case 0:
-                _d.trys.push([0, 3, , 4]);
-                // Params must be string
-                if (typeof (ctx.params.fromCur) !== "string" || typeof (ctx.params.toCur) !== "string") {
-                    ctx.body = "invalid params type";
-                    ctx.throw(400, "invalid params type");
-                }
-                // Params must be of length 3
-                if ((ctx.params.fromCur).length !== 3 || (ctx.params.toCur).length !== 3) {
-                    ctx.body = "invalid params length";
-                    ctx.throw(400, "invalid params length");
-                }
-                _b = (_a = JSON).parse;
-                return [4 /*yield*/, fsx.readFile(path.join(fileDir, currentExchangeRatesFile), "utf8")];
-            case 1:
-                exchange = _b.apply(_a, [_d.sent()]);
-                from = (ctx.params.fromCur).toUpperCase();
-                to = (ctx.params.toCur).toUpperCase();
-                // If params are invalid currencies
-                if (!Object.keys(exchange.rates).includes(from) || !Object.keys(exchange.rates).includes(to)) {
-                    ctx.body = "invalid currency param(s)";
-                    ctx.throw(400, "invalid currency param(s)");
-                }
-                _c = ctx;
-                return [4 /*yield*/, getRate(from, to)];
-            case 2:
-                _c.body = _d.sent();
-                return [3 /*break*/, 4];
-            case 3:
-                err_3 = _d.sent();
-                console.log(err_3);
-                ctx.status = err_3.status || 400;
-                return [3 /*break*/, 4];
-            case 4: return [4 /*yield*/, next()];
-            case 5:
-                _d.sent();
-                return [2 /*return*/];
-        }
-    });
-}); })
-    .get("/:amount/:fromCur/:toCur", function (ctx, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var exchange, _a, _b, from, to, _c, err_4;
-    return __generator(this, function (_d) {
-        switch (_d.label) {
-            case 0:
-                _d.trys.push([0, 3, , 4]);
-                // If amount is not number
-                if (isNaN(Number(ctx.params.amount))) {
-                    ctx.body = "invalid amount param";
-                    ctx.throw(400, "invalid amount param");
-                }
-                // Params must be string
-                if (typeof (ctx.params.fromCur) !== "string" || typeof (ctx.params.toCur) !== "string") {
-                    ctx.body = "invalid params type";
-                    ctx.throw(400, "invalid params type");
-                }
-                // Params must be of length 3
-                if ((ctx.params.fromCur).length !== 3 || (ctx.params.toCur).length !== 3) {
-                    ctx.body = "invalid params length";
-                    ctx.throw(400, "invalid params length");
-                }
-                _b = (_a = JSON).parse;
-                return [4 /*yield*/, fsx.readFile(path.join(fileDir, currentExchangeRatesFile), "utf8")];
-            case 1:
-                exchange = _b.apply(_a, [_d.sent()]);
-                from = (ctx.params.fromCur).toUpperCase();
-                to = (ctx.params.toCur).toUpperCase();
-                // If params are invalid currencies
-                if (!Object.keys(exchange.rates).includes(from) || !Object.keys(exchange.rates).includes(to)) {
-                    ctx.body = "invalid currency param(s)";
-                    ctx.throw(400, "invalid currency param(s)");
-                }
-                _c = ctx;
-                return [4 /*yield*/, getRate(from, to)];
-            case 2:
-                _c.body = (_d.sent()) * Number(ctx.params.amount);
-                return [3 /*break*/, 4];
-            case 3:
-                err_4 = _d.sent();
-                console.log(err_4);
-                ctx.status = err_4.status || 400;
-                return [3 /*break*/, 4];
-            case 4: return [4 /*yield*/, next()];
-            case 5:
-                _d.sent();
-                return [2 /*return*/];
-        }
-    });
-}); })
+    .get("/:fromCur/:toCur", getRateMiddleware)
+    .get("/:amount/:fromCur/:toCur", getRateMiddleware)
     // Upload file
     .post("/", koaBody({ multipart: true }), function (ctx, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var _a, files, oldPath, toBeValidatedFile, _b, _c, textFileName, err_5;
+    var _a, files, oldPath, toBeValidatedFile, _b, _c, textFileName, err_4;
     return __generator(this, function (_d) {
         switch (_d.label) {
             case 0:
@@ -271,9 +232,9 @@ router
                 _d.label = 8;
             case 8: return [3 /*break*/, 10];
             case 9:
-                err_5 = _d.sent();
-                console.log(err_5);
-                ctx.status = err_5.status || 400;
+                err_4 = _d.sent();
+                console.log(err_4);
+                ctx.status = err_4.status || 400;
                 return [3 /*break*/, 10];
             case 10: return [4 /*yield*/, next()];
             case 11:
@@ -284,7 +245,7 @@ router
 }); })
     // Choose file to read from
     .put("/:filename", function (ctx, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var filename, err_6;
+    var filename, err_5;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -315,9 +276,9 @@ router
                 ctx.body = "Main: " + currentExchangeRatesFile;
                 return [3 /*break*/, 3];
             case 2:
-                err_6 = _a.sent();
-                console.log(err_6);
-                ctx.status = err_6.status || 400;
+                err_5 = _a.sent();
+                console.log(err_5);
+                ctx.status = err_5.status || 400;
                 return [3 /*break*/, 3];
             case 3: return [4 /*yield*/, next()];
             case 4:
@@ -328,7 +289,7 @@ router
 }); })
     // Delete file
     .delete("/:filename", function (ctx, next) { return __awaiter(void 0, void 0, void 0, function () {
-    var textFileName, err_7;
+    var textFileName, err_6;
     return __generator(this, function (_a) {
         switch (_a.label) {
             case 0:
@@ -364,9 +325,9 @@ router
                 _a.label = 4;
             case 4: return [3 /*break*/, 6];
             case 5:
-                err_7 = _a.sent();
-                console.log(err_7);
-                ctx.status = err_7.status || 400;
+                err_6 = _a.sent();
+                console.log(err_6);
+                ctx.status = err_6.status || 400;
                 return [3 /*break*/, 6];
             case 6: return [4 /*yield*/, next()];
             case 7:
